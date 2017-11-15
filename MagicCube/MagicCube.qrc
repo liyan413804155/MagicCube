@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Resources/edge.frag</file>
+        <file>Resources/edge.vert</file>
+        <file>Resources/face.frag</file>
+        <file>Resources/face.vert</file>
+        <file>Resources/redo.png</file>
+        <file>Resources/undo.png</file>
+		<file>Resources/sideView.png</file>
+		<file>Resources/topView.png</file>
+		<file>Resources/bottomView.png</file>
+		<file>Resources/leftView.png</file>
+		<file>Resources/rightView.png</file>
+		<file>Resources/frontView.png</file>
+		<file>Resources/backView.png</file>
+    </qresource>
+</RCC>
