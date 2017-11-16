@@ -2,10 +2,9 @@
 
 in vec3 vertex;
 
-uniform mat4 projView;
-uniform mat4 model;
+uniform mat4 projViewModel;
 
 void main()
 {
-	gl_Position = projView * model * vec4(vertex, 1);
+	gl_Position = projViewModel * vec4(vertex, 1);
 }

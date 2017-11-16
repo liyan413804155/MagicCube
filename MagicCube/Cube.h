@@ -1,25 +1,17 @@
 #pragma once
 
-extern float cubeSize;
-
-class Cube : public QOpenGLFunctions
+class Cube
 {
 public:
-    Cube(QVector3D& orig);
+    Cube();
     ~Cube();
 
 public:
-    void init();
-    void drawFace(QOpenGLShaderProgram &faceShader);
-    void drawEdge(QOpenGLShaderProgram &edgeShader);
-
-public:
-    bool checkPick(const QVector3D& linePnt, const QVector3D& lineVec, QVector<int>& isectDirs, QVector<QVector3D>& isectPnts);
+    void init(QVector3D& orig);
+    void reinit(QVector3D& orig);
+    void getVboData(QVector<float>& data);
     QVector3D getOrig();
-    QMatrix4x4 getFace(int dir);
-
-    void setModel(const QMatrix4x4& model);
-    void setXform(const QMatrix4x4& Xform);
+    void setXform(const QMatrix4x4& model);
 
 private:
     friend class CubeImpl;

@@ -19,10 +19,10 @@
 #include <QtWidgets/QToolBar>
 
 #include <functional>
+#include <map>
 #include <set>
 
+#define DECL_PRI(classname) friend class classname##Impl;classname##Impl *d;
+
+#include "Cmd.h"
 #include "Geom.h"
-
-
-
-

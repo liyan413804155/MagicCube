@@ -162,27 +162,17 @@ void CentralWidget::mousePressEvent(QMouseEvent *e)
         emit sendCmd(pCmd);
     }
 
-    /* [2] switch event handler
-    */
-    if (d->_btn == Qt::LeftButton)
-    {
-        d->_world->setStat(World::ROT_MODE);
-    } 
-    else if (d->_btn == Qt::RightButton)
-    {
-        d->_world->setStat(World::ROT_VIEW);
-    }
 
-    /* [3] set current dragged view
+    /* [2] set current dragged view
      */
     if (d->_btn == Qt::LeftButton || d->_btn == Qt::RightButton)
     {
         d->_iDraggingView = iChildView;
     }
 
-    /* [4] event handling
+    /* [3] event handling
      */
-    d->_world->dragBegin(d->_childView[iChildView], pnt - d->_childView[iChildView]._viewport.topLeft());
+    d->_world->dragBegin(d->_childView[iChildView], pnt - d->_childView[iChildView]._viewport.topLeft(), d->_btn);
 
     update();
     __super::mousePressEvent(e);
@@ -197,7 +187,8 @@ void CentralWidget::mouseMoveEvent(QMouseEvent *e)
     if (d->_childView[iChildView]._viewport.contains(pnt))
     {
         d->_world->dragging(d->_childView[iChildView],
-            pnt - d->_childView[iChildView]._viewport.topLeft());
+            pnt - d->_childView[iChildView]._viewport.topLeft(),
+            d->_btn);
     }
 
     update();
@@ -209,11 +200,9 @@ void CentralWidget::mouseReleaseEvent(QMouseEvent *e)
     QPoint pnt = QPoint(e->localPos().x(), d->_height - e->localPos().y());
 
     d->_world->dragEnd(d->_childView[d->_iDraggingView], 
-        pnt - d->_childView[d->_iDraggingView]._viewport.topLeft());
+        pnt - d->_childView[d->_iDraggingView]._viewport.topLeft(), d->_btn);
 
     d->_btn = Qt::NoButton;
-
-    d->_world->setStat(World::NOTHING);
 
     update();
     __super::mouseReleaseEvent(e);

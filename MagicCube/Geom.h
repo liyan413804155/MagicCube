@@ -35,6 +35,8 @@ enum DIR
     D_SIDE,
 };
 
+bool isectLine2Plane(const QVector3D& linePnt, const QVector3D& lineVec, const QMatrix4x4& plane, QVector3D &isectPnt);
+
 bool isectLine2Face(const QVector3D& linePnt, const QVector3D& lineVec, const QMatrix4x4& face, const QVector2D& faceMin, const QVector2D& faceMax, QVector3D &isectPnt);
 
 QMatrix4x4 getPlane(int dir);

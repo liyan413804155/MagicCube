@@ -1,37 +1,59 @@
 #include "stdafx.h"
 
-bool isectLine2Face
+bool isectLine2Plane
 (
-    const QVector3D& linePnt,
-    const QVector3D& lineVec,
-    const QMatrix4x4& face,
-    const QVector2D& faceMin,
-    const QVector2D& faceMax,
-    QVector3D &isectPnt
+const QVector3D& linePnt,
+const QVector3D& lineVec,
+const QMatrix4x4& plane,
+QVector3D &isectPnt
 )
 {
-    QMatrix4x4 faceInv = face.inverted();
+    QMatrix4x4 inv = plane.inverted();
 
-    QVector3D zLinePnt = (faceInv * QVector4D(linePnt, 1.0f)).toVector3D();
-    QVector3D zLineVec = (faceInv * QVector4D(lineVec, 0.0f)).toVector3D();
+    QVector3D zLinePnt = (inv * QVector4D(linePnt, 1.0f)).toVector3D();
+    QVector3D zLineVec = (inv * QVector4D(lineVec, 0.0f)).toVector3D();
     QVector3D zIsecPnt;
 
     if (qAbs(zLinePnt.z()) < ZERO)
     {
         zIsecPnt = zLinePnt;
     }
+    else if (qAbs(zLineVec.z()) < ZERO)
+    {
+        return false;
+    }
     else
     {
         zIsecPnt = zLinePnt - zLinePnt.z() / zLineVec.z() * zLineVec;
     }
+
+    isectPnt = (plane * QVector4D(zIsecPnt, 1.0f)).toVector3D();
+
+    return true;
+}
+
+bool isectLine2Face
+(
+const QVector3D& linePnt,
+const QVector3D& lineVec,
+const QMatrix4x4& face,
+const QVector2D& faceMin,
+const QVector2D& faceMax,
+QVector3D &isectPnt
+)
+{
+    QVector3D zIsecPnt;
+
+    if (!isectLine2Plane(linePnt, lineVec, face, isectPnt))
+        return false;
+
+    zIsecPnt = (face.inverted() * QVector4D(isectPnt, 1.0f)).toVector3D();
 
     if (zIsecPnt.x() < faceMin.x() || zIsecPnt.x() > faceMax.x())
         return false;
 
     if (zIsecPnt.y() < faceMin.y() || zIsecPnt.y() > faceMax.y())
         return false;
-
-    isectPnt = (face * QVector4D(zIsecPnt, 1.0f)).toVector3D();
 
     return true;
 }
