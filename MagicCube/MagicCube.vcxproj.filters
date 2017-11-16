@@ -79,7 +79,7 @@
     <ClCompile Include="GeneratedFiles\qrc_MagicCube.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="isect.cpp">
+    <ClCompile Include="Geom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -107,7 +107,7 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="isect.h">
+    <ClInclude Include="Geom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

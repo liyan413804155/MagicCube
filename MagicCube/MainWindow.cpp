@@ -12,13 +12,13 @@ struct AlignViewInfo
 
 const static QVector<AlignViewInfo> gsAlignViewInfo =
 {
-    { QString(":/Resources/sideView.png"), QString("Side View"), [](){QMatrix4x4 t; t.rotate(45.0f, 1.0f, 1.0f, 1.0f); return t; }() },
-    { QString(":/Resources/topView.png"), QString("Top View"), [](){QMatrix4x4 t; t.rotate(90.0f, 1.0f, 0.0f, 0.0f); return t; }() },
-    { QString(":/Resources/leftView.png"), QString("Left View"), [](){QMatrix4x4 t; t.rotate(90.0f, 0.0f, 1.0f, 0.0f); return t; }() },
-    { QString(":/Resources/frontView.png"), QString("Front View"), [](){QMatrix4x4 t; return t; }() },
-    { QString(":/Resources/rightView.png"), QString("Right View"), [](){QMatrix4x4 t; t.rotate(90.0f, 0.0f, -1.0f, 0.0f); return t; }() },
-    { QString(":/Resources/backView.png"), QString("Back View"), [](){QMatrix4x4 t; t.rotate(180.0f, 1.0f, 0.0f, 0.0f); return t; }() },
-    { QString(":/Resources/bottomView.png"), QString("Bottom View"), [](){QMatrix4x4 t; t.rotate(90.0f, -1.0f, 0.0f, 0.0f); return t; }() },
+    { QString(":/Resources/sideView.png"), QString("Side View"), getPlane(D_SIDE) },
+    { QString(":/Resources/topView.png"), QString("Top View"), getPlane(D_TOP) },
+    { QString(":/Resources/leftView.png"), QString("Left View"), getPlane(D_LEFT) },
+    { QString(":/Resources/frontView.png"), QString("Front View"), getPlane(D_FRONT) },
+    { QString(":/Resources/rightView.png"), QString("Right View"), getPlane(D_RIGHT) },
+    { QString(":/Resources/backView.png"), QString("Back View"), getPlane(D_BACK) },
+    { QString(":/Resources/bottomView.png"), QString("Bottom View"), getPlane(D_BOTTOM) },
 };
 
 class MainWindowImpl

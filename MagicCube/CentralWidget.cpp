@@ -16,28 +16,20 @@ public:
 
         _childView.resize(5);
 
-        QMatrix4x4 m;
-
         /* main view */
-        _childView[0]._xform = m;
+        _childView[0]._xform = getPlane(D_FRONT);
 
         /* front view */
-        _childView[1]._xform = m;
+        _childView[1]._xform = getPlane(D_FRONT);
 
         /* top view */
-        m.setToIdentity();
-        m.rotate(90.0f, 1.0f, 0.0f, 0.0f);
-        _childView[2]._xform = m;
+        _childView[2]._xform = getPlane(D_TOP);
 
         /* left view */
-        m.setToIdentity();
-        m.rotate(90.0f, 0.0f, 1.0f, 0.0f);
-        _childView[3]._xform = m;
+        _childView[3]._xform = getPlane(D_LEFT);
 
         /* side view */
-        m.setToIdentity();
-        m.rotate(45.0f, 1.0f, 1.0f, 1.0f);
-        _childView[4]._xform = m;
+        _childView[4]._xform = getPlane(D_SIDE);
     }
     ~CentralWidgetImpl()
     {
@@ -124,7 +116,7 @@ void CentralWidget::resizeGL(int w, int h)
         for (int i = 1; i < d->_childView.size(); i++)
         {
             d->_childView[i]._viewport = QRect(
-                QPoint(d->_width - (d->_childView.size() - i + 1) * childViewWidth,
+                QPoint(d->_width - (d->_childView.size() - i) * childViewWidth,
                 0),
                 QSize(childViewWidth, childViewWidth));
         }
@@ -154,7 +146,7 @@ void CentralWidget::mousePressEvent(QMouseEvent *e)
     if (d->_btn == Qt::LeftButton && iChildView != 0 && d->_childView[0]._xform != d->_childView[iChildView]._xform)
     {
         QMatrix4x4 oldXform = d->_childView[0]._xform;
-        QMatrix4x4 newXform = d->_childView[d->_iDraggingView]._xform;
+        QMatrix4x4 newXform = d->_childView[iChildView]._xform;
 
         QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
             [this, oldXform]()

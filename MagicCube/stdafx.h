@@ -3,7 +3,7 @@
 #include <QtCore/QRect>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QString>
-#include <QtCore/QStack>
+#include <QtCore/QList>
 #include <QtCore/QVector>
 #include <QtGui/QMatrix4x4>
 #include <QtGui/QMouseEvent>
@@ -19,17 +19,10 @@
 #include <QtWidgets/QToolBar>
 
 #include <functional>
+#include <set>
 
-typedef std::function<void(void)> Transaction;
+#include "Geom.h"
 
-#define ZERO (1.0e-6f)
 
-enum DIR
-{
-    D_FRONT = 0,
-    D_BACK,
-    D_LEFT,
-    D_RIGHT,
-    D_UP,
-    D_DOWN,
-};
+
+

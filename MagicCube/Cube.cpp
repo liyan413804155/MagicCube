@@ -1,18 +1,17 @@
 #include "stdafx.h"
 #include "Cube.h"
-#include "isect.h"
 
-QVector3D g_normal[6] = 
+float cubeSize = 1.0f;
+
+QVector2D rectVertex[4] = 
 {
-    QVector3D(0.0f, 0.0f, 1.0f),
-    QVector3D(0.0f, 0.0f, -1.0f),
-    QVector3D(0.0f, -1.0f, 0.0f),
-    QVector3D(0.0f, 1.0f, 0.0f),
-    QVector3D(1.0f, 0.0f, 0.0f),
-    QVector3D(-1.0f, 0.0f, 0.0f)
+    QVector2D(-0.5f, -0.5f),
+    QVector2D(0.5f, -0.5f),
+    QVector2D(0.5f, 0.5f),
+    QVector2D(-0.5f, 0.5f),
 };
 
-QVector3D g_color[6] =
+QVector3D faceColor[6] =
 {
     QVector3D(1.0f, 0.0f, 0.0f),
     QVector3D(0.0f, 1.0f, 0.0f),
@@ -22,37 +21,24 @@ QVector3D g_color[6] =
     QVector3D(0.5f, 0.0f, 0.5f)
 };
 
-
-
-struct Face
-{
-    QVector3D* _vertex[4];
-    QVector3D* _normal;
-    QVector3D  _color;
-};
-
 class CubeImpl
 {
 public:
     CubeImpl(QVector3D& orig)
     {
-        /* all vertexes */
-        for (int i = 0; i < 8; i++)
+        _orig = orig;
+
+        QMatrix4x4 m;
+        m.translate(orig);
+
+        for (int i = 0; i < 6; i++)
         {
-            _vertex[i] = QVector3D(orig.x() + (i & 1 ? 0.5f : -0.5f),
-                orig.y() + (i & 2 ? 0.5f : -0.5f),
-                orig.z() + (i & 4 ? 0.5f : -0.5f));
+            _face[i] = getPlane(i);
+            _face[i] = m * _face[i];
+            _face[i].translate(0.0f, 0.0f, cubeSize * 0.5f);
+
+            _color[i] = faceColor[i];
         }
-
-        memcpy(_normal, g_normal, sizeof(_normal));
-
-        faceBindVertex(D_FRONT, 0, 1, 3, 2);
-        faceBindVertex(D_BACK, 4, 6, 7, 5);
-        faceBindVertex(D_LEFT, 0, 2, 6, 4);
-        faceBindVertex(D_RIGHT, 1, 5, 7, 3);
-        faceBindVertex(D_UP, 2, 3, 7, 6);
-        faceBindVertex(D_DOWN, 0, 4, 5, 1);
-
     }
     ~CubeImpl()
     {
@@ -60,15 +46,6 @@ public:
     }
 
 public:
-    void faceBindVertex(int iFace, int iVertex0, int iVertex1, int iVertex2, int iVertex3)
-    {
-        _face[iFace]._vertex[0] = &_vertex[iVertex0];
-        _face[iFace]._vertex[1] = &_vertex[iVertex1];
-        _face[iFace]._vertex[2] = &_vertex[iVertex2];
-        _face[iFace]._vertex[3] = &_vertex[iVertex3];
-        _face[iFace]._normal = &_normal[iFace];
-        _face[iFace]._color = g_color[iFace];
-    }
 
     void genFaceVBO()
     {
@@ -77,15 +54,17 @@ public:
         {
             for (int j = 0; j < 4; j++)
             {
-                data.push_back(_face[i]._vertex[j]->x());
-                data.push_back(_face[i]._vertex[j]->y());
-                data.push_back(_face[i]._vertex[j]->z());
-                data.push_back(_face[i]._normal->x());
-                data.push_back(_face[i]._normal->y());
-                data.push_back(_face[i]._normal->z());
-                data.push_back(_face[i]._color.x());
-                data.push_back(_face[i]._color.y());
-                data.push_back(_face[i]._color.z());
+                QVector3D vertex = (_face[i] * QVector4D(rectVertex[j], 0.0f, 1.0f)).toVector3D();
+                QVector3D normal = (_face[i].column(2)).toVector3D();
+                data.push_back(vertex.x());
+                data.push_back(vertex.y());
+                data.push_back(vertex.z());
+                data.push_back(normal.x());
+                data.push_back(normal.y());
+                data.push_back(normal.z());
+                data.push_back(_color[i].x());
+                data.push_back(_color[i].y());
+                data.push_back(_color[i].z());
             }
         }
 
@@ -95,10 +74,11 @@ public:
     }
 
 public:
-    Face _face[6];
+    QVector3D _orig;
+    QMatrix4x4 _face[6];
+    QVector3D _color[6];
 
-    QVector3D _vertex[8];
-    QVector3D _normal[6];
+    QMatrix4x4 _model;
 
     QOpenGLBuffer _faceVBO;
 };
@@ -139,6 +119,8 @@ void Cube::drawFace(QOpenGLShaderProgram &faceShader)
     faceShader.enableAttributeArray(colorLocation);
     faceShader.setAttributeBuffer(colorLocation, GL_FLOAT, 6 * sizeof(float), 3, 9 * sizeof(float));
 
+    faceShader.setUniformValue("model", d->_model);
+
     glDrawArrays(GL_QUADS, 0, 4 * 6);
 
     d->_faceVBO.release();
@@ -157,22 +139,60 @@ void Cube::drawEdge(QOpenGLShaderProgram &edgeShader)
     edgeShader.enableAttributeArray(vertexLocation);
     edgeShader.setAttributeBuffer(vertexLocation, GL_FLOAT, 0, 3, 9 * sizeof(float));
 
+    edgeShader.setUniformValue("model", d->_model);
+
     glDrawArrays(GL_QUADS, 0, 4 * 6);
 
     d->_faceVBO.release();
 }
 
-bool Cube::checkPick(const QVector3D& linePnt, const QVector3D& lineVec, int& nearFaces, QVector3D& nearPnts)
+bool Cube::checkPick
+(
+    const QVector3D& linePnt,
+    const QVector3D& lineVec,
+    QVector<int>& isectDirs,
+    QVector<QVector3D>& isectPnts
+)
 {
-    QVector3D orig;
-    for (auto v : d->_vertex)
+    isectDirs.clear();
+    isectPnts.clear();
+
+    for (int i = 0; i < 6; i++)
     {
-        orig += v;
+        QVector3D isectPnt;
+        if (isectLine2Face(linePnt, lineVec, d->_face[i], rectVertex[0], rectVertex[2], isectPnt))
+        {
+            isectDirs.push_back(i);
+            isectPnts.push_back(isectPnt);
+        }
     }
-    orig /= 8.0f;
 
-    QVector3D boxMin(orig.x() - 0.5f, orig.y() - 0.5f, orig.z() - 0.5f);
-    QVector3D boxMax(orig.x() + 0.5f, orig.y() + 0.5f, orig.z() + 0.5f);
+    return isectDirs.size() > 0;
+}
 
-    return isectLine2Box(linePnt, lineVec, boxMin, boxMax, nearFaces, nearPnts);
+QVector3D Cube::getOrig()
+{
+    return d->_orig;
+}
+
+QMatrix4x4 Cube::getFace(int dir)
+{
+    return d->_face[dir];
+}
+
+void Cube::setModel(const QMatrix4x4& model)
+{
+    d->_model = model;
+}
+
+void Cube::setXform(const QMatrix4x4& Xform)
+{
+    for (auto& face : d->_face)
+    {
+        face = Xform * face;
+    }
+
+    d->_orig = (Xform * QVector4D(d->_orig, 1.0f)).toVector3D();
+
+    d->_faceVBO.destroy();
 }

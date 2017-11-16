@@ -1,5 +1,7 @@
 #pragma once
 
+extern float cubeSize;
+
 class Cube : public QOpenGLFunctions
 {
 public:
@@ -12,7 +14,12 @@ public:
     void drawEdge(QOpenGLShaderProgram &edgeShader);
 
 public:
-    bool checkPick(const QVector3D& line_pnt, const QVector3D& line_vec, int& nearFaces, QVector3D& nearPnts);
+    bool checkPick(const QVector3D& linePnt, const QVector3D& lineVec, QVector<int>& isectDirs, QVector<QVector3D>& isectPnts);
+    QVector3D getOrig();
+    QMatrix4x4 getFace(int dir);
+
+    void setModel(const QMatrix4x4& model);
+    void setXform(const QMatrix4x4& Xform);
 
 private:
     friend class CubeImpl;

@@ -97,7 +97,7 @@
     <ClCompile Include="GeneratedFiles\Release\moc_World.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="isect.cpp" />
+    <ClCompile Include="Geom.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="World.cpp" />
@@ -117,7 +117,7 @@
   <ItemGroup>
     <ClInclude Include="Cmd.h" />
     <ClInclude Include="Cube.h" />
-    <ClInclude Include="isect.h" />
+    <ClInclude Include="Geom.h" />
     <ClInclude Include="stdafx.h" />
     <CustomBuild Include="World.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>

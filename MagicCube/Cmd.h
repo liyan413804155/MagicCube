@@ -1,5 +1,7 @@
 #pragma once
 
+typedef std::function<void(void)> Transaction;
+
 class Cmd
 {
 public:

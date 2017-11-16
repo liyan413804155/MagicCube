@@ -2,14 +2,18 @@
 
 #include "World.h"
 #include "Cube.h"
-#include "isect.h"
 
-static float ZDEPTHMAX = 200.0f;
+using namespace std;
+
+/* cube level
+ */
 static const int LEVEL = 4;
 
-QVector3D edgeNormalColor(0.0f, 0.0f, 0.0f);
-QVector3D edgePreHighlightColor(1.0f, 1.0f, 0.0f);
-QVector3D edgeHighlightColor(1.0f, 0.74f, 0.0f);
+/* define edge color
+ */
+const QVector3D edgeNormalColor(0.0f, 0.0f, 0.0f);
+const QVector3D edgePreHighlightColor(1.0f, 1.0f, 0.0f);
+const QVector3D edgeHighlightColor(1.0f, 0.74f, 0.0f);
 
 class WorldImpl : public QOpenGLFunctions
 {
@@ -23,18 +27,31 @@ public:
 
         _extent = LEVEL * 1.2f;
 
+        /* init view matrix
+         */
         _view.rotate(45.0f, 1.0f, 1.0f, 1.0f);
 
-        for (int i = 0; i < LEVEL * LEVEL * LEVEL; i++)
+        /* init all cube
+         */
+        _cubes.resize(LEVEL * LEVEL * LEVEL);
+
+        for (int i = 0; i < _cubes.size(); i++)
         {
-            _cube[i] = QSharedPointer<Cube>(new Cube(QVector3D(
+            _cubes[i] = QSharedPointer<Cube>(new Cube(QVector3D(
                 i / (LEVEL*LEVEL) - (LEVEL - 1) / 2.0f,
                 (i / LEVEL) % LEVEL - (LEVEL - 1) / 2.0f,
                 i % LEVEL - (LEVEL - 1) / 2.0f)));
         }
 
-        _picked = false;
+        /* init pick information
+         */
+        _prePicked = false;
+        _prePickCube = -1;
+        _prePickDir = -1;
 
+        _picked = false;
+        _pickCube = -1;
+        _pickDir = -1;
     }
 
     ~WorldImpl()
@@ -74,6 +91,10 @@ public:
 
     QMatrix4x4 getProjView(const ViewInfo& viewInfo)
     {
+        /* [1] calculate projection matrix
+         */
+        const float ZDEPTHMAX = 200.0f;
+
         float r = ((float)(viewInfo._viewport.width())) / (viewInfo._viewport.height());
         float x = 0.0f, y = 0.0f;
         if (r > 1.0f)
@@ -88,8 +109,10 @@ public:
         }
 
         QMatrix4x4 projection;
-        projection.ortho(-x, x, -y, y, ZDEPTHMAX, -ZDEPTHMAX);
+        projection.ortho(-x, x, -y, y, -ZDEPTHMAX, ZDEPTHMAX);
 
+        /* [2] get view matrix
+         */
         QMatrix4x4 view(viewInfo._xform * _view);
 
         return projection * view;
@@ -97,33 +120,44 @@ public:
 
     bool checkPick(const ViewInfo& viewInfo, const QPoint& pnt)
     {
+        /* [1] calculate ray in world coordinate
+         */
         QVector3D locPnt = dev2Loc(viewInfo, pnt);
         QMatrix4x4 xform = getProjView(viewInfo);
         QMatrix4x4 xformRev = xform.inverted();
-        QVector3D wldPnt = xformRev * locPnt;
-        QVector3D wldVec = xformRev.column(2).toVector3D(); 
+        QVector3D wldPnt = xformRev * locPnt;                   /* ray point */
+        QVector3D wldVec = xformRev.column(2).toVector3D();     /* ray direct */
 
+        /* [2] traverse all cubes to find which cubes are picked
+         */
         QVector<int> pickCubes;
         QVector<QVector3D> pickPnts;
         QVector<int> pickDirs;
 
-        _picked = false;
+        _prePicked = false;
+        _prePickCube = -1;
+        _prePickDir = -1;
 
-        for (int i = 0; i < LEVEL * LEVEL * LEVEL; i++)
+        for (int i = 0; i < _cubes.size(); i++)
         {
-            QVector3D pickPnt;
-            int pickDir;
-            if (_cube[i]->checkPick(wldPnt, wldVec, pickDir, pickPnt))
+            QVector<QVector3D> tPickPnts;
+            QVector<int> tPickDirs;
+            if (_cubes[i]->checkPick(wldPnt, wldVec, tPickDirs, tPickPnts))
             {
-                pickCubes.push_back(i);
-                pickPnts.push_back(pickPnt);
-                pickDirs.push_back(pickDir);
+                for (int j = 0; j < tPickPnts.size(); j++)
+                {
+                    pickCubes.push_back(i);
+                    pickPnts.push_back(tPickPnts[j]);
+                    pickDirs.push_back(tPickDirs[j]);
+                }
             }
         }
 
         if (pickPnts.size() == 0)
             return false;
 
+        /* [3] find the nearest picked cube
+         */
         float zMin = (xform * pickPnts[0]).z();
         int pickCube = 0;
 
@@ -137,9 +171,9 @@ public:
             }
         }
 
-        _pickCube = pickCubes[pickCube];
-        _pickDir = pickDirs[pickCube];
-        _picked = true;
+        _prePickCube = pickCubes[pickCube];
+        _prePickDir = pickDirs[pickCube];
+        _prePicked = true;
 
         return true;
     }
@@ -164,8 +198,8 @@ public:
         float r = 180.0f * (_extent / LEVEL) /
             (viewInfo._viewport.width()  > viewInfo._viewport.height() ?
             viewInfo._viewport.height() : viewInfo._viewport.width());
-        float yAngle = -(pnt.x() - _pntSave.x()) * r;
-        float xAngle = (pnt.y() - _pntSave.y()) * r;
+        float yAngle = (pnt.x() - _pntSave.x()) * r;
+        float xAngle = -(pnt.y() - _pntSave.y()) * r;
 
         /* [2] projection view transform
         */
@@ -200,25 +234,157 @@ public:
 
     void rotModeBegin(const ViewInfo& viewInfo, const QPoint& pnt)
     {
-//         if (checkPick(viewInfo, pnt))
-//         {
-//             _picked = true;
-//             _edgeColor = edgeHighlightColor;
-//         }
-//         else
-//         {
-//             _picked = false;
-//             _edgeColor = edgeNormalColor;
-//         }
+        _picked = checkPick(viewInfo, pnt);
+
+        _dragCube.clear();
+        _pickCube = -1;
+        _pickDir = -1;
+        _dragAngle = 0.0f;
+
+
+        if (_picked)
+        {
+            _pickCube = _prePickCube;
+            _pickDir = _prePickDir;
+            _pntSave = pnt;
+        }
     }
 
     void rotModeDoing(const ViewInfo& viewInfo, const QPoint& pnt)
     {
+        if (_picked)
+        {
+            QVector3D dragVec = QVector3D(pnt.x() - _pntSave.x(), _pntSave.y() -pnt.y(), 0.0f);
+            if (dragVec.length() < 10.0f)
+                return;
 
+            QSharedPointer<Cube> pickCube = _cubes[_pickCube];
+            
+            QMatrix4x4 pickCubeFace = pickCube->getFace(_pickDir);
+            QVector3D pickCubeXAxis = pickCubeFace.column(0).toVector3D();
+            QVector3D pickCubeYAxis = pickCubeFace.column(1).toVector3D();
+            QVector3D pickCubeZAxis = -pickCubeFace.column(2).toVector3D();
+            QVector3D pickCubOrig = pickCube->getOrig();
+
+            QMatrix4x4 projViewInv = getProjView(viewInfo).inverted();
+            QVector3D dragToWld = (projViewInv * QVector4D(dragVec, 0.0f)).toVector3D();
+            float dragXProj = QVector3D::dotProduct(pickCubeXAxis, dragToWld);
+            float dragYProj = QVector3D::dotProduct(pickCubeYAxis, dragToWld);
+
+            if (_dragCube.empty())
+            {
+                QVector3D axis;
+
+                if (qAbs(dragXProj) > qAbs(dragYProj))
+                {
+                    axis = pickCubeXAxis;
+                    _dragDir = 0;
+                }
+                else
+                {
+                    axis = pickCubeYAxis;
+                    _dragDir = 1;
+                }
+
+                QVector3D orig = pickCubOrig - LEVEL * axis;
+                set<QVector3D> origSet;
+                for (int i = 0; i < LEVEL; i++)
+                {
+                    for (int j = 0; j < LEVEL * 2; j++)
+                    {
+                        origSet.insert(orig + i * pickCubeZAxis + j * axis);
+                    }
+                }
+
+                for (int i = 0; i < _cubes.size(); i++)
+                {
+                    if (origSet.count(_cubes[i]->getOrig()))
+                    {
+                        _dragCube.insert(i);
+                    }
+                }
+            }
+
+            float r = 90.0f * (_extent / LEVEL) / qMin(viewInfo._viewport.width(), viewInfo._viewport.height());
+
+            if (_dragDir)
+            {
+                _dragAngle = r * dragYProj;
+                _dragXform.setToIdentity();
+                _dragXform.rotate(_dragAngle, pickCubeXAxis);
+            }
+            else
+            {
+                _dragAngle = r * dragXProj;
+                _dragXform.setToIdentity();
+                _dragXform.rotate(_dragAngle, pickCubeYAxis);
+            }
+
+            for (auto i : _dragCube)
+            {
+                _cubes[i]->setModel(_dragXform);
+            }
+        }
     }
 
     void rotModeEnd(const ViewInfo& viewInfo, const QPoint& pnt)
     {
+        if (_picked && !_dragCube.empty())
+        {
+            int n = _dragAngle > 0.0f ? (_dragAngle + 45.0f) / 90.0f : (_dragAngle - 45.0f) / 90.0f;
+
+            if (n)
+            {
+                _dragAngle = n * 90;
+
+                QSharedPointer<Cube> pickCube = _cubes[_pickCube];
+
+                QMatrix4x4 pickCubeFace = pickCube->getFace(_pickDir);
+                QVector3D pickCubeXAxis = pickCubeFace.column(0).toVector3D();
+                QVector3D pickCubeYAxis = pickCubeFace.column(1).toVector3D();
+
+                if (_dragDir)
+                {
+                    _dragXform.setToIdentity();
+                    _dragXform.rotate(_dragAngle, pickCubeXAxis);
+                }
+                else
+                {
+                    _dragXform.setToIdentity();
+                    _dragXform.rotate(_dragAngle, pickCubeYAxis);
+                }
+
+                QMatrix4x4 xform = _dragXform;
+                QMatrix4x4 xformInv = _dragXform.inverted();
+                set<int> dragCube = _dragCube;
+
+                QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
+                    [this, dragCube, xformInv]()
+                {
+                    for (auto i : dragCube)
+                    {
+                        _cubes[i]->setXform(xformInv);
+                    }
+                },
+                    [this, dragCube, xform]()
+                {
+                    for (auto i : dragCube)
+                    {
+                        _cubes[i]->setXform(xform);
+                    }
+                },
+                    QString("model transform")));
+
+                emit q->sendCmd(pCmd);
+            }
+
+
+
+            for (auto i : _dragCube)
+            {
+                _cubes[i]->setModel(QMatrix4x4());
+            }
+        }
 
     }
 
@@ -229,14 +395,6 @@ public:
 
     void NothingDoing(const ViewInfo& viewInfo, const QPoint& pnt)
     {
-//         if (checkPick(viewInfo, pnt))
-//         {
-//             _edgeColor = edgePreHighlightColor;
-//         }
-//         else
-//         {
-//             _edgeColor = edgeNormalColor;
-//         }
         checkPick(viewInfo, pnt);
     }
 
@@ -258,13 +416,20 @@ public:
     QOpenGLShaderProgram _faceShader;   /* face shader */
     QOpenGLShaderProgram _edgeShader;   /* edge shader */
 
-    QSharedPointer<Cube> _cube[LEVEL * LEVEL * LEVEL];  /* child cube */
+    QVector<QSharedPointer<Cube>> _cubes;  /* child cube */
 
-    QVector3D _edgeColor;
+    int _prePickCube;
+    int _prePickDir;
+    bool _prePicked;
 
-    int _pickCube;
-    int _pickDir;
-    bool _picked;
+    set<int> _dragCube;
+    int _dragDir;       /* cube dragged direction. 0 x-axis, 1 y-axis */
+    QMatrix4x4 _dragXform;
+    float _dragAngle;
+
+    int _pickCube;  /* picked cube index */
+    int _pickDir;   /* cube picked face direction */
+    bool _picked;   /*  */
 
     dragEvent _dragBegin;
     dragEvent _dragging;
@@ -299,14 +464,14 @@ void World::init()
     Q_ASSERT(d->_edgeShader.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/Resources/edge.frag"));
     Q_ASSERT(d->_edgeShader.link());
 
-    /* [3] 
+    /* [3] init cube
      */
-    for (auto cube : d->_cube)
+    for (int i = 0; i < d->_cubes.size(); i++)
     {
-        cube->init();
+        d->_cubes[i]->init();
     }
 
-    /* [4]
+    /* [4] Setup OpenGL state 
      */
     glCullFace(GL_BACK);
 
@@ -334,11 +499,13 @@ void World::dragEnd(const ViewInfo& viewInfo, const QPoint& pnt)
 
 void World::zoom(int iZoomIn)
 {
-    static float zoomMax = 20.0f;
+    const float zoomMax = 20.0f;
 
     float extent = d->_extent;
     float extentSave = d->_extent;
 
+    /* [1] update "extent"
+     */
     if (iZoomIn)
     {
         extent *= 1.1f;
@@ -350,14 +517,16 @@ void World::zoom(int iZoomIn)
         extent = extent < 1 / zoomMax ? 1 / zoomMax : extent;
     }
 
+    /* [2] send command
+     */
     if (qAbs(d->_extent - extent) > ZERO)
     {
         QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
-        [this, extentSave]()
+            [this, extentSave]()
         {
             d->_extent = extentSave;
         }, 
-        [this, extent]()
+            [this, extent]()
         {
             d->_extent = extent;
         },
@@ -392,9 +561,9 @@ void World::paint(const ViewInfo& viewInfo)
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    for (int i = 0; i < LEVEL *LEVEL *LEVEL; i++)
+    for (int i = 0; i < d->_cubes.size(); i++)
     {
-        d->_cube[i]->drawFace(d->_faceShader);
+        d->_cubes[i]->drawFace(d->_faceShader);
     }
 
     d->_faceShader.release();
@@ -408,18 +577,34 @@ void World::paint(const ViewInfo& viewInfo)
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    for (int i = 0; i < LEVEL *LEVEL *LEVEL; i++)
+    for (int i = 0; i < d->_cubes.size(); i++)
     {
-        d->_cube[i]->drawEdge(d->_edgeShader);
+        d->_cubes[i]->drawEdge(d->_edgeShader);
     }
 
     /* render highlight edge */
-    if (d->_picked)
+    if (d->_prePicked || d->_picked)
     {
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
-        d->_edgeShader.setUniformValue("edgeColor", edgePreHighlightColor);
-        d->_cube[d->_pickCube]->drawEdge(d->_edgeShader);
+
+        if (d->_picked)
+        {
+            d->_edgeShader.setUniformValue("edgeColor", edgeHighlightColor);
+            d->_cubes[d->_pickCube]->drawEdge(d->_edgeShader);
+            for (auto i : d->_dragCube)
+            {
+                d->_cubes[i]->drawEdge(d->_edgeShader);
+            }
+        }
+
+        if (d->_prePicked && (d->_pickCube != d->_prePickCube && 
+            !d->_dragCube.count(d->_prePicked)))
+        {
+            d->_edgeShader.setUniformValue("edgeColor", edgePreHighlightColor);
+            d->_cubes[d->_prePickCube]->drawEdge(d->_edgeShader);
+        }
+
     }
 
     d->_edgeShader.release();
