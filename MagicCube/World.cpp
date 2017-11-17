@@ -43,15 +43,19 @@ public:
 
     void paintBackground(const ViewInfo& viewInfo)
     {
+        /* [1] paint background
+        */
         glDisable(GL_DEPTH_TEST);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glUseProgram(0);
 
-        float white = 1.0f;
-        float gray = 0.5f;
-        float gradient = (white + gray) / 2;
+        const float white = 1.0f;
+        const float gray = 0.5f;
+        const float gradient = (white + gray) / 2.0f;
 
         glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
 
         glBegin(GL_QUADS);
@@ -131,6 +135,7 @@ public:
 
     void rotViewEnd(const ViewInfo& viewInfo, const QPoint& pnt)
     {
+        /* [1] update view matrix */
         if (qAbs(pnt.x() - _pntSave.x()) > ZERO
             || qAbs(pnt.y() - _pntSave.y()) > ZERO)
         {
@@ -284,13 +289,13 @@ void World::paint(const ViewInfo& viewInfo)
     */
     d->paintBackground(viewInfo);
 
-    /* [3] set projection matrix
+    /* [3] render model
      */
     QMatrix4x4 projView = d->getProjView(viewInfo);
 
     d->_model->draw(projView);
 
-    /* [6] render foreground
+    /* [4] render foreground
     */
     d->paintForeground(viewInfo);
 }

@@ -270,6 +270,8 @@ public:
 
     bool getDragCubes(const QVector3D& vec)
     {
+        /* [1] get drag angle
+         */
         QVector3D xAxis = modelFaceXform[_drag._normal].column(0).toVector3D();
         QVector3D yAxis = modelFaceXform[_drag._normal].column(1).toVector3D();
         float xAngle = QVector3D::dotProduct(xAxis, vec) * 90.f / modelLevel;
@@ -279,6 +281,8 @@ public:
         if (abs(xAngle) < minAngle && abs(yAngle) < minAngle)
             return false;
 
+        /* [2] get rotate axis and direction
+         */
         if (abs(xAngle) < abs(yAngle))
         {
             _drag._vec = -yAxis;
@@ -290,6 +294,8 @@ public:
             _drag._axis = yAxis;
         }
 
+        /* [3] get drag cubes
+         */
         QVector3D orig = _cubes[_drag._cube]->getOrig() - modelLevel * _drag._vec;
         QVector3D zAxis = modelFaceXform[_drag._normal].column(2).toVector3D();
 
@@ -302,7 +308,6 @@ public:
                 {
                     _drag._cubes.insert(_pnt2cube[pnt]);
                 }
-               
             }
         }
 
@@ -415,6 +420,8 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
     if (d->_drag._cube < 0)
         return;
 
+    /* [1] get the point in world axis
+     */
     QVector3D wldPnt;
     QVector3D wldVec; 
     d->getRay(projView, locPnt, wldPnt, wldVec);
@@ -423,6 +430,8 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
     if (!isectLine2Plane(wldPnt, wldVec, modelFaceXform[d->_drag._normal], pnt))
         return;
 
+    /* [2] get which cubes are dragged
+     */
     QVector3D vec = pnt - d->_drag._pnt;
 
     if (d->_drag._cubes.empty())
@@ -431,6 +440,8 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
             return;
     }
 
+    /* [3] set the cubes model matrix
+     */
     d->_drag._angle = QVector3D::dotProduct(d->_drag._vec, vec) * 90.f / modelLevel;
     d->_drag._model.setToIdentity();
     d->_drag._model.rotate(d->_drag._angle, d->_drag._axis);
@@ -446,32 +457,24 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
     if (d->_drag._cubes.empty())
         return;
 
-    int iAngle = d->_drag._angle > 0.0f ? (d->_drag._angle + 45.0f) / 90.0f : (d->_drag._angle - 45.0f) / 90.0f;
+    /* [1] calculate the rotate angle
+     */
+
+    int iAngle = d->_drag._angle > 0.0f ? (d->_drag._angle + 45.0f) / 90.0f 
+        : (d->_drag._angle - 45.0f) / 90.0f;
 
     if (!iAngle)
         return;
-
     d->_drag._angle = iAngle * 90.f;
 
+    /* [2] send command
+     */
     QMatrix4x4 xform;
     xform.rotate(d->_drag._angle, d->_drag._axis);
 
     set<int> dragCube = d->_drag._cubes;
 
-    QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
-        [this, dragCube, xform]()
-    {
-        QMatrix4x4 inv = xform.inverted();
-        for (auto i : dragCube)
-        {
-            d->_cubes[i]->setXform(inv);
-            d->_pnt2cube[d->_cubes[i]->getOrig()] = i;
-        }
-        d->_drag._cubes.clear();
-        d->_draw._vbo.destroy();
-        d->_draw._dragVbo.destroy();
-    },
-        [this, dragCube, xform]()
+    auto cmdFunc = [this, dragCube](const QMatrix4x4& xform)
     {
         for (auto i : dragCube)
         {
@@ -481,10 +484,19 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
         d->_drag._cubes.clear();
         d->_draw._vbo.destroy();
         d->_draw._dragVbo.destroy();
+    };
+
+    QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
+        [cmdFunc, xform]()
+    {
+        QMatrix4x4 inv = xform.inverted();
+        cmdFunc(xform);
+    },
+        [cmdFunc, xform]()
+    {
+        cmdFunc(xform);
     },
         QString("model transform")));
-
-    
 
     emit sendCmd(pCmd);
 }
@@ -496,20 +508,30 @@ void Model::draw(const QMatrix4x4& projView)
         d->genVBOAll();
     }
 
+    /* [1] normal cube face
+     */
     d->drawFace(projView, d->_draw._vbo, d->_draw._vtxCnt);
 
+    /* [2] dragging cube face
+     */
     if (d->_drag._cubes.size())
     {
         d->drawFace(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt);
     }
 
+    /* [3] normal cube edge
+    */
     d->drawEdge(projView, d->_draw._vbo, d->_draw._vtxCnt, edgeNormalColor, false);
 
+    /* [4] dragging cube edge
+    */
     if (d->_drag._cubes.size())
     {
         d->drawEdge(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt, edgeHighlightColor, true);
     }
 
+    /* [5] cube edge that will drag
+     */
     if (d->_drag._cube >= 0 && !d->_drag._cubes.count(d->_drag._cube))
     {
         if (!d->_drag._vbo.isCreated())
@@ -519,6 +541,8 @@ void Model::draw(const QMatrix4x4& projView)
         d->drawEdge(projView, d->_drag._vbo, d->_drag._vtxCnt, edgeHighlightColor, true);
     }
 
+    /* [6] pick cube edge
+    */
     if (d->_pick._cube >= 0 && !d->_drag._cubes.count(d->_pick._cube) && d->_pick._cube != d->_drag._cube)
     {
         if (!d->_pick._vbo.isCreated())
