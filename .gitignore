@@ -56,3 +56,4 @@ CMakeLists.txt.user*
 *.exe
 *.ilk
 *.ipch
+*.user
