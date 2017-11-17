@@ -10,8 +10,7 @@ public:
     ~Model();
 
 public:
-    void init();
-    void reinit();
+    void init(bool bFirst);
 
 public:
     bool pick(const QMatrix4x4& projView, const QVector2D& locPnt);

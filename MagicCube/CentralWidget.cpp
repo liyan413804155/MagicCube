@@ -9,27 +9,8 @@ public:
     CentralWidgetImpl()
     {
         _world = new World();
-        _width = 0;
-        _height = 0;
-        _iDraggingView = 0;
-        _btn = Qt::NoButton;
-
         _childView.resize(5);
 
-        /* main view */
-        _childView[0]._xform = getPlane(D_FRONT);
-
-        /* front view */
-        _childView[1]._xform = getPlane(D_FRONT);
-
-        /* top view */
-        _childView[2]._xform = getPlane(D_TOP);
-
-        /* left view */
-        _childView[3]._xform = getPlane(D_LEFT);
-
-        /* side view */
-        _childView[4]._xform = getPlane(D_SIDE);
     }
     ~CentralWidgetImpl()
     {
@@ -37,6 +18,22 @@ public:
     }
 
 public:
+    void init(bool bFirst)
+    {
+        _width = 0;
+        _height = 0;
+        _iDraggingView = 0;
+        _btn = Qt::NoButton;
+
+        _childView[0]._xform = getPlane(D_FRONT);   /* main view */
+        _childView[1]._xform = getPlane(D_FRONT);   /* front view */
+        _childView[2]._xform = getPlane(D_TOP);     /* top view */
+        _childView[3]._xform = getPlane(D_LEFT);    /* left view */
+        _childView[4]._xform = getPlane(D_SIDE);    /* side view */
+
+        _world->init(bFirst);
+    }
+
     int getChildView(const QPoint& pnt)
     {
         for (int i = 0; i < _childView.size(); i++)
@@ -81,9 +78,7 @@ void CentralWidget::initializeGL()
 {
     initializeOpenGLFunctions();
     glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-
-    d->_world->init();
-
+    d->init(true);
 }
 
 void CentralWidget::resizeGL(int w, int h)

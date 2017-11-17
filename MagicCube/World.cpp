@@ -22,27 +22,18 @@ public:
         delete _model;
     }
 
-    void init()
+    void init(bool bFirst)
     {
-        initializeOpenGLFunctions();
+        if (bFirst)
+        {
+            initializeOpenGLFunctions();
+        }
 
-        initHelper();
-
-        _model->init();
-    }
-
-    void reinit()
-    {
-        initHelper();
-
-        _model->reinit();
-    }
-
-    void initHelper()
-    {
         _extent = modelLevel * 1.2f;
 
         _view.rotate(45.0f, 1.0f, 1.0f, 1.0f);
+
+        _model->init(bFirst);
     }
 
     void paintForeground(const ViewInfo& viewInfo)
@@ -178,29 +169,28 @@ World::~World()
     delete d;
 }
 
-void World::init()
+void World::init(bool bFirst)
 {
     /* [1] initialize OpenGL Functions
      */
-    initializeOpenGLFunctions();
+    if (bFirst)
+    {
+        initializeOpenGLFunctions();
 
-    glCullFace(GL_BACK);
+        glCullFace(GL_BACK);
 
-    glPolygonOffset(-1.0f, -1.0f);
-    glEnable(GL_POLYGON_OFFSET_LINE);
+        glPolygonOffset(-1.0f, -1.0f);
+        glEnable(GL_POLYGON_OFFSET_LINE);
 
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_POLYGON_SMOOTH);
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_POLYGON_SMOOTH);
 
-    d->init();
+        connect(d->_model, &Model::sendCmd, this, &World::sendCmd);
+    }
 
-    connect(d->_model, &Model::sendCmd, this, &World::sendCmd);
+    d->init(bFirst);
 }
 
-void World::reinit()
-{
-    d->reinit();
-}
 
 void World::dragBegin(const ViewInfo& viewInfo, const QPoint& pnt, Qt::MouseButton btn)
 {

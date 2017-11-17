@@ -14,8 +14,7 @@ public:
     ~World();
 
 public:
-    void init();
-    void reinit();
+    void init(bool bFirst);
 
 public:
     void dragBegin(const ViewInfo& view, const QPoint& pnt, Qt::MouseButton btn);

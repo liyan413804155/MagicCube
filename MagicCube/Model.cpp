@@ -49,34 +49,32 @@ public:
 
     }
 public:
-    void init()
+    void init(bool bFirst)
     {
-        initializeOpenGLFunctions();
+        if (bFirst)
+        {
+            initializeOpenGLFunctions();
 
-        bool isOK = true;
+            bool isOK = true;
 
-        isOK = _draw._faceShd.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/Resources/face.vert");
-        Q_ASSERT(isOK);
-        isOK = _draw._faceShd.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/Resources/face.frag");
-        Q_ASSERT(isOK);
-        isOK = _draw._faceShd.link();
-        Q_ASSERT(isOK);
+            isOK = _draw._faceShd.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/Resources/face.vert");
+            Q_ASSERT(isOK);
+            isOK = _draw._faceShd.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/Resources/face.frag");
+            Q_ASSERT(isOK);
+            isOK = _draw._faceShd.link();
+            Q_ASSERT(isOK);
 
-        isOK = _draw._edgeShd.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/Resources/edge.vert");
-        Q_ASSERT(isOK);
-        isOK = _draw._edgeShd.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/Resources/edge.frag");
-        Q_ASSERT(isOK);
-        isOK = _draw._edgeShd.link();
-        Q_ASSERT(isOK);
+            isOK = _draw._edgeShd.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/Resources/edge.vert");
+            Q_ASSERT(isOK);
+            isOK = _draw._edgeShd.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/Resources/edge.frag");
+            Q_ASSERT(isOK);
+            isOK = _draw._edgeShd.link();
+            Q_ASSERT(isOK);
+        }
 
-        reinit();
-    }
-
-    void reinit()
-    {
         for (int i = 0; i < _cubes.size(); i++)
         {
-            _cubes[i]->reinit(QVector3D(
+            _cubes[i]->init(QVector3D(
                 i / (modelLevel * modelLevel) - (modelLevel - 1) / 2.0f,
                 (i / modelLevel) % modelLevel - (modelLevel - 1) / 2.0f,
                 i % modelLevel - (modelLevel - 1) / 2.0f));
@@ -363,15 +361,13 @@ Model::~Model()
     delete d;
 }
 
-void Model::init()
+void Model::init(bool bFirst)
 {
-    initializeOpenGLFunctions();
-    d->init();
-}
-
-void Model::reinit()
-{
-    d->reinit();
+    if (bFirst)
+    {
+        initializeOpenGLFunctions();
+    }
+    d->init(bFirst);
 }
 
 bool Model::pick(const QMatrix4x4& projView, const QVector2D& locPnt)

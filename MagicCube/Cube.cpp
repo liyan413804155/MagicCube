@@ -51,11 +51,6 @@ Cube::~Cube()
 
 void Cube::init(QVector3D& orig)
 {
-    reinit(orig);
-}
-
-void Cube::reinit(QVector3D& orig)
-{
     d->_orig = orig;
 
     QMatrix4x4 m;
