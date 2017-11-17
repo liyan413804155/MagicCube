@@ -281,7 +281,7 @@ public:
 
         if (abs(xAngle) < abs(yAngle))
         {
-            _drag._vec = yAxis;
+            _drag._vec = -yAxis;
             _drag._axis = xAxis;
         }
         else
