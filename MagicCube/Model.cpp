@@ -490,7 +490,7 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
         [cmdFunc, xform]()
     {
         QMatrix4x4 inv = xform.inverted();
-        cmdFunc(xform);
+        cmdFunc(inv);
     },
         [cmdFunc, xform]()
     {
