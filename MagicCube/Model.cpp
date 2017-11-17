@@ -256,10 +256,14 @@ public:
          */
         QVector3D zAxis = modelFaceXform[dir].column(2).toVector3D();
         QVector3D pnt = isectPnt - 0.5f * zAxis;
-        float offset = (modelLevel % 2 ? 0.0f : 0.5f) + modelLevel;
-        pnt += QVector3D(offset, offset, offset);
-        pnt = QVector3D(floor(pnt.x()), floor(pnt.y()), floor(pnt.z()));
-        pnt -= QVector3D(modelLevel, modelLevel, modelLevel);
+        if (modelLevel % 2)
+        {
+            pnt = QVector3D(floor(pnt.x() + 0.5f), floor(pnt.y() + 0.5f), floor(pnt.z() + 0.5f));
+        }
+        else
+        {
+            pnt = QVector3D(floor(pnt.x()) + 0.5f, floor(pnt.y()) + 0.5f, floor(pnt.z()) + 0.5f);
+        }
         Q_ASSERT(_pnt2cube.find(pnt) != _pnt2cube.end());
         cube = _pnt2cube[pnt];
 
@@ -296,8 +300,11 @@ public:
             for (int j = 0; j < modelLevel * 2; j++)
             {
                 QVector3D pnt = orig - i * zAxis + j * _drag._vec;
-                Q_ASSERT(_pnt2cube.find(pnt) != _pnt2cube.end());
-                _drag._cubes.insert(_pnt2cube[pnt]);
+                if (_pnt2cube.find(pnt) != _pnt2cube.end())
+                {
+                    _drag._cubes.insert(_pnt2cube[pnt]);
+                }
+               
             }
         }
 
@@ -389,9 +396,11 @@ bool Model::pick(const QMatrix4x4& projView, const QVector2D& locPnt)
 bool Model::dragBegin(const QMatrix4x4& projView, const QVector2D& locPnt)
 {
     d->_drag._cubes.clear();
+    d->_draw._vbo.destroy();
+    d->_draw._dragVbo.destroy();
 
     int cube;
-    if (d->checkPick(projView, locPnt, d->_drag._pnt, d->_drag._normal, cube))
+    if (!d->checkPick(projView, locPnt, d->_drag._pnt, d->_drag._normal, cube))
     {
         d->_drag._vbo.destroy();
         d->_drag._cube = -1;
@@ -415,7 +424,7 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
     d->getRay(projView, locPnt, wldPnt, wldVec);
 
     QVector3D pnt;
-    if (isectLine2Plane(wldPnt, wldVec, modelFaceXform[d->_drag._normal], pnt))
+    if (!isectLine2Plane(wldPnt, wldVec, modelFaceXform[d->_drag._normal], pnt))
         return;
 
     QVector3D vec = pnt - d->_drag._pnt;
@@ -433,6 +442,8 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
 
 void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
 {
+    d->_drag._model.setToIdentity();
+
     if (d->_drag._cube < 0)
         return;
 
@@ -458,7 +469,9 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
         for (auto i : dragCube)
         {
             d->_cubes[i]->setXform(inv);
+            d->_pnt2cube[d->_cubes[i]->getOrig()] = i;
         }
+        d->_drag._cubes.clear();
         d->_draw._vbo.destroy();
         d->_draw._dragVbo.destroy();
     },
@@ -467,15 +480,17 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
         for (auto i : dragCube)
         {
             d->_cubes[i]->setXform(xform);
+            d->_pnt2cube[d->_cubes[i]->getOrig()] = i;
         }
+        d->_drag._cubes.clear();
         d->_draw._vbo.destroy();
         d->_draw._dragVbo.destroy();
     },
         QString("model transform")));
 
-    emit sendCmd(pCmd);
+    
 
-    d->_drag._vbo.destroy();
+    emit sendCmd(pCmd);
 }
 
 void Model::draw(const QMatrix4x4& projView)
@@ -489,26 +504,26 @@ void Model::draw(const QMatrix4x4& projView)
 
     if (d->_drag._cubes.size())
     {
-        d->drawFace(projView * d->_drag._model, d->_draw._vbo, d->_draw._vtxCnt);
+        d->drawFace(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt);
     }
 
     d->drawEdge(projView, d->_draw._vbo, d->_draw._vtxCnt, edgeNormalColor, false);
 
     if (d->_drag._cubes.size())
     {
-        d->drawEdge(projView * d->_drag._model, d->_draw._vbo, d->_draw._vtxCnt, edgeHighlightColor, true);
+        d->drawEdge(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt, edgeHighlightColor, true);
     }
 
-    if (d->_drag._cube > 0 && d->_drag._cubes.count(d->_drag._cube))
+    if (d->_drag._cube >= 0 && !d->_drag._cubes.count(d->_drag._cube))
     {
         if (!d->_drag._vbo.isCreated())
-        {
+        { 
             d->genVBODrag();
         }
         d->drawEdge(projView, d->_drag._vbo, d->_drag._vtxCnt, edgeHighlightColor, true);
     }
 
-    if (d->_pick._cube > 0 && !d->_drag._cubes.count(d->_pick._cube) && d->_pick._cube != d->_drag._cube)
+    if (d->_pick._cube >= 0 && !d->_drag._cubes.count(d->_pick._cube) && d->_pick._cube != d->_drag._cube)
     {
         if (!d->_pick._vbo.isCreated())
         {
