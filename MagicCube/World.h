@@ -32,8 +32,8 @@ public:
 
 signals:
     void sendCmd(QSharedPointer<Cmd> pCmd);
+    void setCoord(const QVector3D& coord);
 
 private:
-    friend class WorldImpl;
-    WorldImpl * d;
+    DECL_PRI(World);
 };

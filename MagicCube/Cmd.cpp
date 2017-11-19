@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#include "Cmd.h"
-
 using namespace QtSharedPointer;
 
 const int MAX_UNDO_COUNT = 100;

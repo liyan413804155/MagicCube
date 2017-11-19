@@ -14,8 +14,7 @@ public:
     void redo();
 
 private:
-    friend class CmdImpl;
-    CmdImpl *d;
+    DECL_PRI(Cmd);
 };
 
 class CmdStack
@@ -32,6 +31,5 @@ public:
     void revCmd(QSharedPointer<Cmd> pCmd);
 
 private:
-    friend class CmdStackImpl;
-    CmdStackImpl *d;
+    DECL_PRI(CmdStack);
 };

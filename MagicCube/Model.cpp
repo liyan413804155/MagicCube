@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "Cube.h"
 #include "Model.h"
 
 using namespace std;
@@ -177,8 +178,16 @@ public:
 
     void drawEdge(const QMatrix4x4& projViewModel, QOpenGLBuffer& vbo, int vtxCnt, const QVector3D& color, bool isThru)
     {
-        glEnable(GL_CULL_FACE);
-        isThru ? glDisable(GL_DEPTH_TEST) : glEnable(GL_DEPTH_TEST);
+        if (isThru)
+        {
+            glDisable(GL_CULL_FACE);
+            glDisable(GL_DEPTH_TEST);
+        }
+        else
+        {
+            glEnable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
+        }
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         _draw._edgeShd.bind();
@@ -199,22 +208,10 @@ public:
     }
 
 public:
-    void getRay(const QMatrix4x4& projView, const QVector2D& locPnt, QVector3D& wldPnt, QVector3D& wldVec)
-    {
-        QMatrix4x4 inv = projView.inverted();
-        wldPnt = (inv * QVector4D(locPnt, 0.0f, 1.0f)).toVector3D();  /* ray point */
-        wldVec = inv.column(2).toVector3D();                          /* ray direct */
-    }
 
-    bool checkPick(const QMatrix4x4& projView, const QVector2D& locPnt, QVector3D& isectPnt, int& dir, int& cube)
+    bool checkPick(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec, QVector3D& isectPnt, int& dir, int& cube)
     {
-        /* [1] calculate ray in world coordinate
-        */
-        QVector3D wldPnt;  /* ray point */
-        QVector3D wldVec;  /* ray direct */
-        getRay(projView, locPnt, wldPnt, wldVec);
-
-        /* [2] traverse all face to find which face are picked and intersect point
+        /* [1] traverse all face to find which face are picked and intersect point
         */
         QVector<QVector3D> isectPnts;
         QVector<int> dirs;
@@ -232,7 +229,7 @@ public:
         if (isectPnts.size() == 0)
             return false;
 
-        /* [3] find the nearest picked face and intersect point
+        /* [2] find the nearest picked face and intersect point
         */
         int index = 0;
         float zMin = (projView * isectPnts[0]).z();
@@ -250,7 +247,7 @@ public:
         isectPnt = isectPnts[index];
         dir = dirs[index];
 
-        /* [4] find the intersect point belong to which cube
+        /* [3] find the intersect point belong to which cube
          */
         QVector3D zAxis = modelFaceXform[dir].column(2).toVector3D();
         QVector3D pnt = isectPnt - 0.5f * zAxis;
@@ -375,18 +372,20 @@ void Model::init(bool bFirst)
     d->init(bFirst);
 }
 
-bool Model::pick(const QMatrix4x4& projView, const QVector2D& locPnt)
+bool Model::pick(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec)
 {
     QVector3D isectPnt;
     int dir;
     int cube;
 
-    if (!d->checkPick(projView, locPnt, isectPnt, dir, cube))
+    if (!d->checkPick(projView, wldPnt, wldVec, isectPnt, dir, cube))
     {
         d->_pick._vbo.destroy();
         d->_pick._cube = -1;
         return false;
     }
+
+    emit setCoord(isectPnt);
 
     if (cube != d->_pick._cube)
         d->_pick._vbo.destroy();
@@ -394,14 +393,14 @@ bool Model::pick(const QMatrix4x4& projView, const QVector2D& locPnt)
     return true;
 }
 
-bool Model::dragBegin(const QMatrix4x4& projView, const QVector2D& locPnt)
+bool Model::dragBegin(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec)
 {
     d->_drag._cubes.clear();
     d->_draw._vbo.destroy();
     d->_draw._dragVbo.destroy();
 
     int cube;
-    if (!d->checkPick(projView, locPnt, d->_drag._pnt, d->_drag._normal, cube))
+    if (!d->checkPick(projView, wldPnt, wldVec, d->_drag._pnt, d->_drag._normal, cube))
     {
         d->_drag._vbo.destroy();
         d->_drag._cube = -1;
@@ -415,20 +414,18 @@ bool Model::dragBegin(const QMatrix4x4& projView, const QVector2D& locPnt)
     return true;
 }
 
-void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
+void Model::dragging(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec)
 {
     if (d->_drag._cube < 0)
         return;
 
-    /* [1] get the point in world axis
+    /* [1] get the intersection point
      */
-    QVector3D wldPnt;
-    QVector3D wldVec; 
-    d->getRay(projView, locPnt, wldPnt, wldVec);
-
     QVector3D pnt;
     if (!isectLine2Plane(wldPnt, wldVec, modelFaceXform[d->_drag._normal], pnt))
         return;
+
+    emit setCoord(pnt);
 
     /* [2] get which cubes are dragged
      */
@@ -447,7 +444,7 @@ void Model::dragging(const QMatrix4x4& projView, const QVector2D& locPnt)
     d->_drag._model.rotate(d->_drag._angle, d->_drag._axis);
 }
 
-void Model::dragEnd(const QMatrix4x4& projView, const QVector2D& locPnt)
+void Model::dragEnd(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec)
 {
     d->_drag._model.setToIdentity();
 

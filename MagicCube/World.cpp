@@ -105,13 +105,13 @@ public:
             ((float)pnt.y()) / (viewInfo._viewport.height() / 2.0f) - 1.0f);
     }
 
-    void rotViewBegin(const ViewInfo& viewInfo, const QPoint& pnt)
+    void dragBegin(const ViewInfo& viewInfo, const QPoint& pnt)
     {
         _pntSave = pnt;
         _viewSave = _view;
     }
 
-    void rotViewDoing(const ViewInfo& viewInfo, const QPoint& pnt)
+    void dragging(const ViewInfo& viewInfo, const QPoint& pnt)
     {
         /* [1] length to angle
         */
@@ -133,7 +133,7 @@ public:
         _view = inv * projView;
     }
 
-    void rotViewEnd(const ViewInfo& viewInfo, const QPoint& pnt)
+    void dragEnd(const ViewInfo& viewInfo, const QPoint& pnt)
     {
         /* [1] update view matrix */
         if (qAbs(pnt.x() - _pntSave.x()) > ZERO
@@ -167,6 +167,8 @@ public:
 World::World()
 {
     d = new WorldImpl(this);
+
+    connect(d->_model, &Model::setCoord, this, &World::setCoord);
 }
 
 World::~World()
@@ -182,14 +184,6 @@ void World::init(bool bFirst)
     {
         initializeOpenGLFunctions();
 
-        glCullFace(GL_BACK);
-
-        glPolygonOffset(-1.0f, -1.0f);
-        glEnable(GL_POLYGON_OFFSET_LINE);
-
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-        glEnable(GL_POLYGON_SMOOTH);
-
         connect(d->_model, &Model::sendCmd, this, &World::sendCmd);
     }
 
@@ -199,42 +193,63 @@ void World::init(bool bFirst)
 
 void World::dragBegin(const ViewInfo& viewInfo, const QPoint& pnt, Qt::MouseButton btn)
 {
+    QMatrix4x4 projView = d->getProjView(viewInfo);
+    QVector2D locPnt = d->dev2Loc(viewInfo, pnt);
+    QVector3D wldPnt;
+    QVector3D wldVec;
+
+    getRay(projView, locPnt, wldPnt, wldVec);
+
     if (btn == Qt::LeftButton)
     {
-        d->_model->dragBegin(d->getProjView(viewInfo), d->dev2Loc(viewInfo, pnt));
+        d->_model->dragBegin(projView, wldPnt, wldVec);
     }
     else if (btn == Qt::RightButton)
     {
-        d->rotViewBegin(viewInfo, pnt);
+        d->dragBegin(viewInfo, pnt);
     }
-
 }
 
 void World::dragging(const ViewInfo& viewInfo, const QPoint& pnt, Qt::MouseButton btn)
 {
+    QMatrix4x4 projView = d->getProjView(viewInfo);
+    QVector2D locPnt = d->dev2Loc(viewInfo, pnt);
+    QVector3D wldPnt;
+    QVector3D wldVec;
+
+    getRay(projView, locPnt, wldPnt, wldVec);
+    emit setCoord(wldPnt);
+
     if (btn == Qt::LeftButton)
     {
-        d->_model->dragging(d->getProjView(viewInfo), d->dev2Loc(viewInfo, pnt));
+        d->_model->dragging(projView, wldPnt, wldVec);
     }
     else if (btn == Qt::RightButton)
     {
-        d->rotViewDoing(viewInfo, pnt);
+        d->dragging(viewInfo, pnt);
     }
     else if (btn == Qt::NoButton)
     {
-        d->_model->pick(d->getProjView(viewInfo), d->dev2Loc(viewInfo, pnt));
+        d->_model->pick(projView, wldPnt, wldVec);
     }
 }
 
 void World::dragEnd(const ViewInfo& viewInfo, const QPoint& pnt, Qt::MouseButton btn)
 {
+    QMatrix4x4 projView = d->getProjView(viewInfo);
+    QVector2D locPnt = d->dev2Loc(viewInfo, pnt);
+    QVector3D wldPnt;
+    QVector3D wldVec;
+
+    getRay(projView, locPnt, wldPnt, wldVec);
+
     if (btn == Qt::LeftButton)
     {
-        d->_model->dragEnd(d->getProjView(viewInfo), d->dev2Loc(viewInfo, pnt));
+        d->_model->dragEnd(projView, wldPnt, wldVec);
     }
     else if (btn == Qt::RightButton)
     {
-        d->rotViewEnd(viewInfo, pnt);
+        d->dragEnd(viewInfo, pnt);
     }
 }
 

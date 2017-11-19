@@ -9,7 +9,9 @@
 #include <QtGui/QMouseEvent>
 #include <QtGui/QOpenGLBuffer>
 #include <QtGui/QOpenGLFunctions>
+#include <QtGui/QOpenGLPaintDevice>
 #include <QtGui/QOpenGLShaderProgram>
+#include <QtGui/QPainter>
 #include <QtGui/QVector3D>
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>

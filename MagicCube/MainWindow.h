@@ -16,6 +16,5 @@ private slots:
     void alignView();
 
 private:
-    friend class MainWindowImpl;
-    MainWindowImpl *d;
+    DECL_PRI(MainWindow);
 };

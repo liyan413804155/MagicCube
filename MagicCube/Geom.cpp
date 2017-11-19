@@ -98,3 +98,16 @@ QMatrix4x4 getPlane(int dir)
 
     return planes[dir];
 }
+
+void getRay
+(
+const QMatrix4x4& projView,
+const QVector2D& locPnt,
+QVector3D& wldPnt,
+QVector3D& wldVec
+)
+{
+    QMatrix4x4 inv = projView.inverted();
+    wldPnt = (inv * QVector4D(locPnt, 0.0f, 1.0f)).toVector3D();  /* ray point */
+    wldVec = inv.column(2).toVector3D();                          /* ray direct */
+}

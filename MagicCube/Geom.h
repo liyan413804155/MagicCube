@@ -40,3 +40,5 @@ bool isectLine2Plane(const QVector3D& linePnt, const QVector3D& lineVec, const Q
 bool isectLine2Face(const QVector3D& linePnt, const QVector3D& lineVec, const QMatrix4x4& face, const QVector2D& faceMin, const QVector2D& faceMax, QVector3D &isectPnt);
 
 QMatrix4x4 getPlane(int dir);
+
+void getRay(const QMatrix4x4& projView, const QVector2D& locPnt, QVector3D& wldPnt, QVector3D& wldVec);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Cmd.h"
-
 class CentralWidget : public QOpenGLWidget, public QOpenGLFunctions
 {
     Q_OBJECT
@@ -22,10 +20,12 @@ protected:
 public:
     void setAlignView(const QMatrix4x4& alignView, const QString& dir);
 
+public slots:
+    void setCoord(const QVector3D& coord);
+
 signals:
     void sendCmd(QSharedPointer<Cmd> pCmd);
 
 private:
-    friend class CentralWidgetImpl;
-    CentralWidgetImpl *d;
+    DECL_PRI(CentralWidget);
 };

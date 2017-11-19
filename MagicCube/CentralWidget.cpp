@@ -20,6 +20,15 @@ public:
 public:
     void init(bool bFirst)
     {
+        if (bFirst)
+        {
+            glCullFace(GL_BACK);
+            glPolygonOffset(-1.0f, -1.0f);
+            glEnable(GL_POLYGON_OFFSET_LINE);
+            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+            glEnable(GL_POLYGON_SMOOTH);
+        }
+
         _width = 0;
         _height = 0;
         _iDraggingView = 0;
@@ -46,6 +55,29 @@ public:
         return 0;
     }
 
+    void beginPaintGL()
+    {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    }
+
+    void endPaintGL()
+    {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+    }
+
+    void drawCoordinate(QPainter& painter)
+    {
+        QString txt = QString(" x : %1\n y : %2\n z : %3\n")
+            .arg(_coord.x())
+            .arg(_coord.y())
+            .arg(_coord.z());
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.drawText(_childView[0]._viewport, Qt::AlignLeft | Qt::AlignTop, txt);
+    }
+
 public:
     World *_world;  /* model world */
 
@@ -57,6 +89,8 @@ public:
     int _iDraggingView;     /* current dragging view */
 
     Qt::MouseButton _btn;   /* current button */
+
+    QVector3D _coord;
 };
 
 CentralWidget::CentralWidget(QWidget *parent /* = Q_NULLPTR */)
@@ -65,6 +99,7 @@ CentralWidget::CentralWidget(QWidget *parent /* = Q_NULLPTR */)
     d = new CentralWidgetImpl;
 
     connect(d->_world, &World::sendCmd, this, &CentralWidget::sendCmd);
+    connect(d->_world, &World::setCoord, this, &CentralWidget::setCoord);
 
     setMouseTracking(true);
 }
@@ -121,12 +156,25 @@ void CentralWidget::resizeGL(int w, int h)
 
 void CentralWidget::paintGL()
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    /* [1] draw model
+     */
+    d->beginPaintGL();
 
     for (int i = 0; i < d->_childView.size(); i++)
     {
         d->_world->paint(d->_childView[i]);
     }
+
+    d->endPaintGL();
+
+    /* [2]
+     */
+    QPainter painter;
+    painter.begin(this);
+
+    d->drawCoordinate(painter);
+
+    painter.end();
 }
 
 void CentralWidget::mousePressEvent(QMouseEvent *e)
@@ -214,4 +262,9 @@ void CentralWidget::wheelEvent(QWheelEvent *e)
 void CentralWidget::setAlignView(const QMatrix4x4& alignView, const QString& dir)
 {
     d->_world->setView(alignView, dir);
+}
+
+void CentralWidget::setCoord(const QVector3D& coord)
+{
+    d->_coord = coord;
 }

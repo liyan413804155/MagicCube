@@ -8,11 +8,14 @@ public:
 
 public:
     void init(QVector3D& orig);
+
+public:
     void getVboData(QVector<float>& data);
     QVector3D getOrig();
+
+public:
     void setXform(const QMatrix4x4& model);
 
 private:
-    friend class CubeImpl;
-    CubeImpl *d;
+    DECL_PRI(Cube);
 };
