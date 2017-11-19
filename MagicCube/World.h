@@ -2,7 +2,7 @@
 
 struct ViewInfo
 {
-    QRect  _viewport;
+    GLRect  _viewport;
     QMatrix4x4 _xform;
 };
 

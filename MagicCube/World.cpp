@@ -76,7 +76,7 @@ public:
          */
         const float ZDEPTHMAX = 200.0f;
 
-        float r = ((float)(viewInfo._viewport.width())) / (viewInfo._viewport.height());
+        float r = ((float)(viewInfo._viewport.w)) / (viewInfo._viewport.h);
         float x = 0.0f, y = 0.0f;
         if (r > 1.0f)
         {
@@ -99,10 +99,10 @@ public:
         return projection * view;
     }
 
-    QVector2D dev2Loc(const ViewInfo& viewInfo, const QPoint& pnt)
+    QVector2D dev2Loc(const ViewInfo& viewInfo, const QPoint& devPnt)
     {
-        return QVector2D(((float)pnt.x())/(viewInfo._viewport.width() / 2.0f) - 1.0f,
-            ((float)pnt.y()) / (viewInfo._viewport.height() / 2.0f) - 1.0f);
+        return QVector2D(((float)devPnt.x())/(viewInfo._viewport.w / 2.0f) - 1.0f,
+            ((float)devPnt.y()) / (viewInfo._viewport.h / 2.0f) - 1.0f);
     }
 
     void dragBegin(const ViewInfo& viewInfo, const QPoint& pnt)
@@ -115,7 +115,7 @@ public:
     {
         /* [1] length to angle
         */
-        float r = 180.0f * (_extent / modelLevel) / min(viewInfo._viewport.width(), viewInfo._viewport.width());
+        float r = 180.0f * (_extent / modelLevel) / min(viewInfo._viewport.w, viewInfo._viewport.w);
         float yAngle = (pnt.x() - _pntSave.x()) * r;
         float xAngle = -(pnt.y() - _pntSave.y()) * r;
 
@@ -298,7 +298,7 @@ void World::paint(const ViewInfo& viewInfo)
 {
     /* [1] set viewport
      */
-    glViewport(viewInfo._viewport.x(), viewInfo._viewport.y(), viewInfo._viewport.width(), viewInfo._viewport.height());
+    glViewport(viewInfo._viewport.x, viewInfo._viewport.y, viewInfo._viewport.w, viewInfo._viewport.h);
 
     /* [2] render background
     */

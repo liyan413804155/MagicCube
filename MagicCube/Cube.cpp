@@ -3,7 +3,7 @@
 
 float cubeSize = 1.0f;
 
-QVector2D rectVertex[4] = 
+QVector2D cubeRectVertex[4] = 
 {
     QVector2D(-0.5f, -0.5f),
     QVector2D(0.5f, -0.5f),
@@ -86,7 +86,7 @@ void Cube::getVboData(QVector<float>& data)
     {
         for (int j = 0; j < 4; j++)
         {
-            QVector3D vertex = (d->_face[i] * QVector4D(rectVertex[j], 0.0f, 1.0f)).toVector3D();
+            QVector3D vertex = (d->_face[i] * QVector4D(cubeRectVertex[j], 0.0f, 1.0f)).toVector3D();
             QVector3D normal = (d->_face[i].column(2)).toVector3D();
             data.push_back(vertex.x());
             data.push_back(vertex.y());

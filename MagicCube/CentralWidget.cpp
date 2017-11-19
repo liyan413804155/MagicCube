@@ -45,11 +45,11 @@ public:
         _world->init(bFirst);
     }
 
-    int getChildView(const QPoint& pnt)
+    int getChildView(const QPoint& devPnt)
     {
         for (int i = 0; i < _childView.size(); i++)
         {
-            if (_childView[i]._viewport.contains(pnt))
+            if (_childView[i]._viewport.contains(devPnt))
             {
                 return i;
             }
@@ -77,22 +77,16 @@ public:
             .arg(_coord.y())
             .arg(_coord.z());
         painter.setRenderHint(QPainter::Antialiasing);
-        painter.drawText(_childView[0]._viewport, Qt::AlignLeft | Qt::AlignTop, txt);
+        painter.drawText(_childView[0]._viewport.toRect(QSize(_width, _height)), Qt::AlignLeft | Qt::AlignTop, txt);
     }
 
     void drawActiveViewFrame(QPainter& painter)
     {
         QPen pen;
         pen.setColor(Qt::yellow);
-        pen.setWidth(5);
+        pen.setWidth(2);
         painter.setPen(pen);
-        QRect r = _childView[_iMainView]._viewport;
-        int x = r.x();
-        int y = _height - r.y() - r.height();
-        int w = r.width();
-        int h = r.height();
-
-        painter.drawRect(QRect(x, y, w, h));
+        painter.drawRect(_childView[_iMainView]._viewport.toRect(QSize(_width, _height)));
     }
 
 public:
@@ -145,11 +139,11 @@ void CentralWidget::resizeGL(int w, int h)
     {
         int childViewWidth = d->_height / (d->_childView.size() - 1);
 
-        d->_childView[0]._viewport = QRect(0, 0, d->_width - childViewWidth, d->_height);
+        d->_childView[0]._viewport = GLRect(0, 0, d->_width - childViewWidth, d->_height);
 
         for (int i = 1; i < d->_childView.size(); i++)
         {
-            d->_childView[i]._viewport = QRect(QPoint(d->_width - childViewWidth,
+            d->_childView[i]._viewport = GLRect(QPoint(d->_width - childViewWidth,
                 d->_height - i * childViewWidth),
                 QSize(childViewWidth, childViewWidth));
         }
@@ -159,11 +153,11 @@ void CentralWidget::resizeGL(int w, int h)
     {
         int childViewWidth = d->_width / (d->_childView.size() - 1);
 
-        d->_childView[0]._viewport = QRect(0, childViewWidth, d->_width, d->_height - childViewWidth);
+        d->_childView[0]._viewport = GLRect(0, childViewWidth, d->_width, d->_height - childViewWidth);
 
         for (int i = 1; i < d->_childView.size(); i++)
         {
-            d->_childView[i]._viewport = QRect(
+            d->_childView[i]._viewport = GLRect(
                 QPoint(d->_width - (d->_childView.size() - i) * childViewWidth,
                 0),
                 QSize(childViewWidth, childViewWidth));
@@ -235,7 +229,7 @@ void CentralWidget::mousePressEvent(QMouseEvent *e)
 
     /* [3] event handling
      */
-    d->_world->dragBegin(d->_childView[iChildView], pnt - d->_childView[iChildView]._viewport.topLeft(), d->_btn);
+    d->_world->dragBegin(d->_childView[iChildView], pnt - d->_childView[iChildView]._viewport.source(), d->_btn);
 
     update();
     __super::mousePressEvent(e);
@@ -250,7 +244,7 @@ void CentralWidget::mouseMoveEvent(QMouseEvent *e)
     if (d->_childView[iChildView]._viewport.contains(pnt))
     {
         d->_world->dragging(d->_childView[iChildView],
-            pnt - d->_childView[iChildView]._viewport.topLeft(),
+            pnt - d->_childView[iChildView]._viewport.source(),
             d->_btn);
     }
 
@@ -263,7 +257,7 @@ void CentralWidget::mouseReleaseEvent(QMouseEvent *e)
     QPoint pnt = QPoint(e->localPos().x(), d->_height - e->localPos().y());
 
     d->_world->dragEnd(d->_childView[d->_iDraggingView], 
-        pnt - d->_childView[d->_iDraggingView]._viewport.topLeft(), d->_btn);
+        pnt - d->_childView[d->_iDraggingView]._viewport.source(), d->_btn);
 
     d->_btn = Qt::NoButton;
 
