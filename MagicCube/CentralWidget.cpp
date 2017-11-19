@@ -32,7 +32,9 @@ public:
         _width = 0;
         _height = 0;
         _iDraggingView = 0;
+        _iMainView = 1;
         _btn = Qt::NoButton;
+        _coord = QVector3D();
 
         _childView[0]._xform = getPlane(D_FRONT);   /* main view */
         _childView[1]._xform = getPlane(D_FRONT);   /* front view */
@@ -78,6 +80,21 @@ public:
         painter.drawText(_childView[0]._viewport, Qt::AlignLeft | Qt::AlignTop, txt);
     }
 
+    void drawActiveViewFrame(QPainter& painter)
+    {
+        QPen pen;
+        pen.setColor(Qt::yellow);
+        pen.setWidth(5);
+        painter.setPen(pen);
+        QRect r = _childView[_iMainView]._viewport;
+        int x = r.x();
+        int y = _height - r.y() - r.height();
+        int w = r.width();
+        int h = r.height();
+
+        painter.drawRect(QRect(x, y, w, h));
+    }
+
 public:
     World *_world;  /* model world */
 
@@ -87,6 +104,7 @@ public:
     QVector<ViewInfo> _childView;  /* child view information  */
 
     int _iDraggingView;     /* current dragging view */
+    int _iMainView;
 
     Qt::MouseButton _btn;   /* current button */
 
@@ -173,6 +191,7 @@ void CentralWidget::paintGL()
     painter.begin(this);
 
     d->drawCoordinate(painter);
+    d->drawActiveViewFrame(painter);
 
     painter.end();
 }
@@ -186,19 +205,20 @@ void CentralWidget::mousePressEvent(QMouseEvent *e)
 
     /* [1] switch children view
      */
-    if (d->_btn == Qt::LeftButton && iChildView != 0 && d->_childView[0]._xform != d->_childView[iChildView]._xform)
+    if (d->_btn == Qt::LeftButton && iChildView != 0 && d->_iMainView != iChildView)
     {
-        QMatrix4x4 oldXform = d->_childView[0]._xform;
-        QMatrix4x4 newXform = d->_childView[iChildView]._xform;
+        int oldView = d->_iMainView;
 
         QSharedPointer<Cmd> pCmd = QSharedPointer<Cmd>(new Cmd(
-            [this, oldXform]()
+            [this, oldView]()
         {
-            d->_childView[0]._xform = oldXform;
+            d->_iMainView = oldView;
+            d->_childView[0]._xform = d->_childView[d->_iMainView]._xform;
         },
-            [this, newXform]()
+            [this, iChildView]()
         {
-            d->_childView[0]._xform = newXform;;
+            d->_iMainView = iChildView;
+            d->_childView[0]._xform = d->_childView[d->_iMainView]._xform;
         },
             QString("Switch Child View %1").arg(d->_iDraggingView - 1)));
 
