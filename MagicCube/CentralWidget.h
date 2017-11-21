@@ -25,6 +25,7 @@ public slots:
 
 signals:
     void sendCmd(QSharedPointer<Cmd> pCmd);
+    void setMsg(const QString& msg);
 
 private:
     DECL_PRI(CentralWidget);

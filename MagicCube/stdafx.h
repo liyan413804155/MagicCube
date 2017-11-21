@@ -18,6 +18,7 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QOpenGLWidget>
+#include <QtWidgets/QStatusBar>
 #include <QtWidgets/QToolBar>
 
 #include <functional>

@@ -14,6 +14,7 @@ private slots:
     void redo();
     void revCmd(QSharedPointer<Cmd> pCmd);
     void alignView();
+    void setMsg(const QString& msg);
 
 private:
     DECL_PRI(MainWindow);

@@ -34,7 +34,6 @@ public:
         _iDraggingView = 0;
         _iMainView = 1;
         _btn = Qt::NoButton;
-        _coord = QVector3D();
 
         _childView[0]._xform = getPlane(D_FRONT);   /* main view */
         _childView[1]._xform = getPlane(D_FRONT);   /* front view */
@@ -57,36 +56,25 @@ public:
         return 0;
     }
 
-    void beginPaintGL()
+    void drawActiveViewFrame()
     {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        float x0 = ((float)_childView[_iMainView]._viewport.x) / (_width / 2) - 1.0f;
+        float y0 = ((float)_childView[_iMainView]._viewport.y) / (_height / 2) - 1.0f;
+        float w = ((float)_childView[_iMainView]._viewport.w) / (_width / 2);
+        float h = ((float)_childView[_iMainView]._viewport.h) / (_height / 2);
+        float x1 = x0 + w;
+        float y1 = y0 + h;
 
-    }
-
-    void endPaintGL()
-    {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
-    }
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glColor3f(1.0f, 1.0f, 0.0f);
 
-    void drawCoordinate(QPainter& painter)
-    {
-        QString txt = QString(" x : %1\n y : %2\n z : %3\n")
-            .arg(_coord.x())
-            .arg(_coord.y())
-            .arg(_coord.z());
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.drawText(_childView[0]._viewport.toRect(QSize(_width, _height)), Qt::AlignLeft | Qt::AlignTop, txt);
-    }
-
-    void drawActiveViewFrame(QPainter& painter)
-    {
-        QPen pen;
-        pen.setColor(Qt::yellow);
-        pen.setWidth(2);
-        painter.setPen(pen);
-        painter.drawRect(_childView[_iMainView]._viewport.toRect(QSize(_width, _height)));
+        glBegin(GL_QUADS);
+        glVertex2f(x0, y0);
+        glVertex2f(x1, y0);
+        glVertex2f(x1, y1);
+        glVertex2f(x0, y1);
+        glEnd();
     }
 
 public:
@@ -101,8 +89,6 @@ public:
     int _iMainView;
 
     Qt::MouseButton _btn;   /* current button */
-
-    QVector3D _coord;
 };
 
 CentralWidget::CentralWidget(QWidget *parent /* = Q_NULLPTR */)
@@ -170,24 +156,18 @@ void CentralWidget::paintGL()
 {
     /* [1] draw model
      */
-    d->beginPaintGL();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (int i = 0; i < d->_childView.size(); i++)
     {
         d->_world->paint(d->_childView[i]);
     }
 
-    d->endPaintGL();
-
     /* [2]
      */
-    QPainter painter;
-    painter.begin(this);
+    glViewport(0, 0, d->_width, d->_height);
 
-    d->drawCoordinate(painter);
-    d->drawActiveViewFrame(painter);
-
-    painter.end();
+    d->drawActiveViewFrame();
 }
 
 void CentralWidget::mousePressEvent(QMouseEvent *e)
@@ -280,5 +260,10 @@ void CentralWidget::setAlignView(const QMatrix4x4& alignView, const QString& dir
 
 void CentralWidget::setCoord(const QVector3D& coord)
 {
-    d->_coord = coord;
+    QString txt = QString(" (%1, %2, %3)")
+        .arg(coord.x())
+        .arg(coord.y())
+        .arg(coord.z());
+
+    emit setMsg(txt);
 }

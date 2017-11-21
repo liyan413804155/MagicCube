@@ -66,6 +66,7 @@ public:
 
 public:
     CentralWidget * _centralWidget;
+    QStatusBar    * _statusWidget;
     QAction *_undo;
     QAction *_redo;
     QSharedPointer<CmdStack> _cmdStack;
@@ -74,11 +75,17 @@ public:
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    d = new MainWindowImpl;
+
     /* [1] new central widget 
      */
-    d = new MainWindowImpl;
     d->_centralWidget = new CentralWidget(this);
+    setCentralWidget(d->_centralWidget);
     connect(d->_centralWidget, &CentralWidget::sendCmd, this, &MainWindow::revCmd);
+
+    d->_statusWidget = new QStatusBar(this);
+    setStatusBar(d->_statusWidget);
+    connect(d->_centralWidget, &CentralWidget::setMsg, this, &MainWindow::setMsg);
 
     /* [2] add tool bar, add undo/redo action
      */
@@ -110,7 +117,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     /* [4] set window size
      */
-    setCentralWidget(d->_centralWidget);
+    
     setMinimumSize(QSize(500, 350));
     setBaseSize(QSize(500, 350));
 
@@ -151,4 +158,9 @@ void MainWindow::alignView()
         d->_centralWidget->setAlignView(gsAlignViewInfo[index]._view, gsAlignViewInfo[index]._name);
         d->_centralWidget->update();
     }
+}
+
+void MainWindow::setMsg(const QString& msg)
+{
+    d->_statusWidget->showMessage(msg);
 }
