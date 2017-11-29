@@ -21,7 +21,7 @@ public:
     void dragEnd(const QMatrix4x4& projView, const QVector3D& wldPnt, const QVector3D& wldVec);
 
 public:
-    void draw(const QMatrix4x4& projView);
+    void draw(const QMatrix4x4& projMatrix, const QMatrix4x4& viewMatrix);
 
 signals:
     void sendCmd(QSharedPointer<Cmd> pCmd);

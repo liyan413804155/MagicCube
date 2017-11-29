@@ -70,7 +70,7 @@ public:
         glEnd();
     }
 
-    QMatrix4x4 getProjView(const ViewInfo& viewInfo)
+    QMatrix4x4 getProjMatrix(const ViewInfo& viewInfo)
     {
         /* [1] calculate projection matrix
          */
@@ -92,11 +92,17 @@ public:
         QMatrix4x4 projection;
         projection.ortho(-x, x, -y, y, -ZDEPTHMAX, ZDEPTHMAX);
 
-        /* [2] get view matrix
-         */
-        QMatrix4x4 view(viewInfo._xform * _view);
+        return projection;
+    }
 
-        return projection * view;
+    QMatrix4x4 getViewMatrix(const ViewInfo& viewInfo)
+    {
+        return viewInfo._xform * _view;
+    }
+
+    QMatrix4x4 getProjView(const ViewInfo& viewInfo)
+    {
+        return getProjMatrix(viewInfo) * getViewMatrix(viewInfo);
     }
 
     QVector2D dev2Loc(const ViewInfo& viewInfo, const QPoint& devPnt)
@@ -308,7 +314,7 @@ void World::paint(const ViewInfo& viewInfo)
      */
     QMatrix4x4 projView = d->getProjView(viewInfo);
 
-    d->_model->draw(projView);
+    d->_model->draw(d->getProjMatrix(viewInfo), d->getViewMatrix(viewInfo));
 
     /* [4] render foreground
     */

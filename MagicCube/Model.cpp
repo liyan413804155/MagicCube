@@ -13,6 +13,11 @@ const QVector3D edgeNormalColor(0.0f, 0.0f, 0.0f);
 const QVector3D edgePreHighlightColor(1.0f, 1.0f, 0.0f);
 const QVector3D edgeHighlightColor(1.0f, 0.74f, 0.0f);
 
+static float ambient = 0.2f;
+static float diffuse = 0.4f;
+static float shininess = 3.0f;
+static float specular = 0.8f;
+
 const QVector<QMatrix4x4> modelFaceXform = []()->QVector<QMatrix4x4>
 {
     QVector<QMatrix4x4> faces(6);
@@ -144,7 +149,7 @@ public:
         genVBO(data, _drag._vbo, _drag._vtxCnt);
     }
 
-    void drawFace(const QMatrix4x4& projViewModel, QOpenGLBuffer& vbo, int vtxCnt)
+    void drawFace(const QMatrix4x4& projMatrix, const QMatrix4x4& viewModelMatrix, QOpenGLBuffer& vbo, int vtxCnt)
     {
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -153,7 +158,12 @@ public:
         _draw._faceShd.bind();
         vbo.bind();
 
-        _draw._faceShd.setUniformValue("projViewModel", projViewModel);
+        _draw._faceShd.setUniformValue("proj", projMatrix);
+        _draw._faceShd.setUniformValue("viewModel", viewModelMatrix);
+        _draw._faceShd.setUniformValue("ambient", ambient);
+        _draw._faceShd.setUniformValue("diffuse", diffuse);
+        _draw._faceShd.setUniformValue("shininess", shininess);
+        _draw._faceShd.setUniformValue("specular", specular);
 
         int offset = 0;
         int vertexLocation = _draw._faceShd.attributeLocation("vertex");
@@ -498,7 +508,7 @@ void Model::dragEnd(const QMatrix4x4& projView, const QVector3D& wldPnt, const Q
     emit sendCmd(pCmd);
 }
 
-void Model::draw(const QMatrix4x4& projView)
+void Model::draw(const QMatrix4x4& projMatrix, const QMatrix4x4& viewMatrix)
 {
     if (!d->_draw._vbo.isCreated())
     {
@@ -507,24 +517,24 @@ void Model::draw(const QMatrix4x4& projView)
 
     /* [1] normal cube face
      */
-    d->drawFace(projView, d->_draw._vbo, d->_draw._vtxCnt);
+    d->drawFace(projMatrix, viewMatrix, d->_draw._vbo, d->_draw._vtxCnt);
 
     /* [2] dragging cube face
      */
     if (d->_drag._cubes.size())
     {
-        d->drawFace(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt);
+        d->drawFace(projMatrix, viewMatrix * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt);
     }
 
     /* [3] normal cube edge
     */
-    d->drawEdge(projView, d->_draw._vbo, d->_draw._vtxCnt, edgeNormalColor, false);
+    d->drawEdge(projMatrix * viewMatrix, d->_draw._vbo, d->_draw._vtxCnt, edgeNormalColor, false);
 
     /* [4] dragging cube edge
     */
     if (d->_drag._cubes.size())
     {
-        d->drawEdge(projView * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt, edgeHighlightColor, true);
+        d->drawEdge(projMatrix * viewMatrix * d->_drag._model, d->_draw._dragVbo, d->_draw._dragVtxCnt, edgeHighlightColor, true);
     }
 
     /* [5] cube edge that will drag
@@ -535,7 +545,7 @@ void Model::draw(const QMatrix4x4& projView)
         { 
             d->genVBODrag();
         }
-        d->drawEdge(projView, d->_drag._vbo, d->_drag._vtxCnt, edgeHighlightColor, true);
+        d->drawEdge(projMatrix * viewMatrix, d->_drag._vbo, d->_drag._vtxCnt, edgeHighlightColor, true);
     }
 
     /* [6] pick cube edge
@@ -546,6 +556,6 @@ void Model::draw(const QMatrix4x4& projView)
         {
             d->genVBOPick();
         }
-        d->drawEdge(projView, d->_pick._vbo, d->_pick._vtxCnt, edgePreHighlightColor, true);
+        d->drawEdge(projMatrix * viewMatrix, d->_pick._vbo, d->_pick._vtxCnt, edgePreHighlightColor, true);
     }
 }
