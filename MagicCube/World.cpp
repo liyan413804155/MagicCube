@@ -312,7 +312,6 @@ void World::paint(const ViewInfo& viewInfo)
 
     /* [3] render model
      */
-    QMatrix4x4 projView = d->getProjView(viewInfo);
 
     d->_model->draw(d->getProjMatrix(viewInfo), d->getViewMatrix(viewInfo));
 
